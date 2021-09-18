@@ -1,130 +1,140 @@
 <script lang="ts">
-	import { tweened, Tweened } from 'svelte/motion';
-	import { cubicInOut } from 'svelte/easing';
+	import { combine, animateNumber, animateColor, Animation, AnimationObject } from "$lib";
+	import { onMount } from "svelte";
+	import katex from 'katex';
+
 
 	let videoWidth = 600;
 	let videoHeight = 0;
-	$: videoHeight = (videoWidth / 25) * 9;
+	$: videoHeight = (videoWidth / 16) * 9;
 
-	let videoTime = 0;
 	let videoLenght = 10;
 
-	let time = 0;
+	let videoTime = 0;
 
-	let testFunc = () => {
-		const width2 = tweened(time / 400, {
-			duration: 400,
-			easing: cubicInOut
-		});
-		console.log(width2);
-	};
+	let playing = false;
 
-	let animation = [];
+	let prevTime = 0;
+	const render = (timeMs: number) => {
+		let dt = timeMs - prevTime;
+		prevTime = timeMs;
+		if (playing) {
+			videoTime += dt / 1000;
+		}
 
-	const animate = (animation, time) => {
-		animation.forEach((instruction) => {
-			let amount = cubicInOut(
-				Math.max(0, Math.min(1, time - instruction.start)) / instruction.duration
-			);
-			instruction.element.style.opacity = amount;
-		});
-	};
+		if (videoTime >= videoLenght) {
+			videoTime = videoLenght;
+			playing = false;
+		}
+		requestAnimationFrame(render);
+	}
+
+	onMount(() => {
+		requestAnimationFrame(render);
+	})
+
+	// setInterval(() => {
+	// 	if (playing) {
+	// 		videoTime += 1/30;
+	// 	}
+	// }, 1000 / 30)
+
+	let rotation = combine(
+        0,
+        animateNumber(45, 2, 1),
+    );
+
+	let opacity = combine<number>(
+        0,
+    );
+
+	let x = combine(
+		0,
+        animateNumber(70, 2, 1),
+    );
+
+	let y = combine(
+        0,
+        animateNumber(70, 2, 1),
+    );
+
+	let background = combine(
+		2,
+		animateColor("white", 0, 1),
+		animateColor("red", 1, 1),
+		animateColor("lime", 2, 1),
+		animateColor("blue", 3, 1),
+	)
+
+	let strokeOffset = combine(
+		0,
+		animateNumber(0, 0, 1)
+	)
+
+	let textX = combine(
+		0,
+		animateNumber(200, 0, 1)
+	)
+
+	let textY = animateNumber(100, 0, 1);
+
+	let textOpacity = combine(0, animateNumber(1, 0, 1))
+	
 
 	let svg: SVGElement;
 
-	// const makeRect = (x, y, width, height) => {
-	//     let element = document.create;
-	//     element.width = width;
-	//     element.height = height;
-	//     element.x = x;
-	//     element.y = y;
-	//     svg.appendChild(element);
-	//     return element;
-	// }
+	let katexString = katex.renderToString("c = \\pm\\sqrt{a^2 + b^2}", {
+		throwOnError: false,
+	})
 
-	// const fadeIn = (object: SVGElement, duration: number, time: number) => {
-	//     animation.push({
-	//         start: time,
-	//         duration,
-	//         element: object,
-	//     });
-	// }
+	let animation = new Animation();
+	let rect = new AnimationObject();
 
-	let mounted = false;
+	animation
+		.play(rect.fadeTo(1))
 
-	// onMount(() => {
-	//     mounted = true;
-	//     let rect = makeRect(0, 0, 100, 100)
-	//     fadeIn(rect, 1, 1);
-	// });
 
-	// $: if (mounted) {
-	//     animate(animation, time)
-	//     console.log(time)
-	// };
-
-	const timing = (time, start, duration) => {
-		let v = cubicInOut(Math.max(0, Math.min(1, time - start)) / duration);
-		console.log('returning', v);
-		return v;
-	};
-
-	const interpolate = (a, b, alpha) => {
-		if (alpha < 0) return a;
-		if (alpha > 1) return b;
-		return alpha * b + (1 - alpha) * a;
-	};
-
-	const fadeTo = (to, start, duration) => {
-		let func = (startValue, currentTime) => interpolate(startValue, to, cubicInOut((currentTime - start) / duration));
-		return {func, start};
-	};
-
-	const combine =
-		(startOffset: number, ...functions) => {
-            let func = (startValue: number, currentTime: number) => functions
-                .sort((a, b) => a.start - b.start)
-                .filter(({start}) => start + startOffset < currentTime)
-                .reduce((value, func, i, a) => {
-                    let t;
-                    if (a[i + 1] !== undefined) {
-                        t = a[i + 1].start;
-                    } else {
-                        t = currentTime - startOffset;
-                    }
-                    return func.func(value, t);
-                }, startValue)
-            return {func, start: startOffset}
-        }
-		
-
-	let opacity = combine(
-        0,
-        fadeTo(1, 1, 1),
-        fadeTo(0, 1.5, 1),
-        fadeTo(1, 2, 1)
-    );
-
-	const actions = (...actions) => {
-		return actions.find((v) => v !== 0 && v !== 1) || actions.slice(-1)[0];
-	};
+	// how I want it to look
+	// let animation = new Animation();
+	// let rect = animation.rect(x, y, w, h, color, strokewidth, etc...)
+	// animation
+	//  .play(rotate(rect, 45))
+	//	.run(rotate(rect, 45))
+	//  .wait(1)
+	//  
 </script>
 
+<svelte:head>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.18/dist/katex.min.css" integrity="sha384-zTROYFVGOfTw7JV7KUu8udsvW2fx4lWOsCEDqhBreBwlHI4ioVRtmIvEThzJHGET" crossorigin="anonymous">
+</svelte:head>
+
 <div>
-	<div>
+	<div style="padding: 0px; margin: 0px; position: relative">
 		<svg
 			width={videoWidth}
 			height={videoHeight}
+			bind:this="{svg}"
 			style="border: 1px solid black; background-color: black"
 		>
 			<rect
-                opacity={opacity.func(0, time)}
+				opacity={opacity.func(100, videoTime)}
 				stroke="white"
 				stroke-width="2"
+				stroke-dasharray="400"
+				stroke-dashoffset="{strokeOffset.func(400, videoTime)}"
+				fill="{background.func("black", videoTime)}"
 				width={100}
 				height={100}
+				x={x.func(50, videoTime)}
+				y={y.func(50, videoTime)}
+				transform={`rotate(${rotation.func(0, videoTime)}, ${x.func(50, videoTime) + 50}, ${y.func(50, videoTime) + 50})`}
 			/>
 		</svg>
+		<div style={`z-index: 2; opacity: ${textOpacity.func(0, videoTime) * 100}%; position: absolute; left: ${textX.func(0, videoTime)}px; top: ${textY.func(0, videoTime)}px; color: white`}>
+			{@html katexString}
+		</div>
 	</div>
-	<input type="range" min="0" max="4" step="0.01" bind:value={time} />
+	
+	<input type="range" min="0" max="{videoLenght}" step="0.01" on:mousedown="{() => playing = false}" bind:value={videoTime} />
+	<button on:click={() => playing = !playing}>{playing ? "Pause" : "Play"}</button>
 </div>
