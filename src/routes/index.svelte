@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { combine, animateNumber, animateColor, Animation, AnimationObject } from '$lib';
+	import { interpolateNumber, interpolateLab, interpolate } from 'd3-interpolate';
+
 	import { onMount } from 'svelte';
 	import katex from 'katex';
 
@@ -32,93 +33,88 @@
 		requestAnimationFrame(render);
 	});
 
-	// setInterval(() => {
-	// 	if (playing) {
-	// 		videoTime += 1/30;
-	// 	}
-	// }, 1000 / 30)
-
-	let rotation = combine(0, animateNumber(45, 2, 1));
-
-	let opacity = combine<number>(0);
-
-	let x = combine(0, animateNumber(70, 2, 1));
-
-	let y = combine(0, animateNumber(70, 2, 1));
-
-	let background = combine(
-		2,
-		animateColor('white', 0, 1),
-		animateColor('red', 1, 1),
-		animateColor('lime', 2, 1),
-		animateColor('blue', 3, 1)
-	);
-
-	let strokeOffset = combine(0, animateNumber(0, 0, 1));
-
-	let textX = combine(0, animateNumber(200, 0, 1));
-
-	let textY = animateNumber(100, 0, 1);
-
-	let textOpacity = combine(0, animateNumber(1, 0, 1));
-
 	let svg: SVGElement;
 
-	let katexString = katex.renderToString('c = \\pm\\sqrt{a^2 + b^2}', {
-		throwOnError: false
-	});
+	// let katexString = katex.renderToString('c = \\pm\\sqrt{a^2 + b^2}', {
+	// 	throwOnError: false
+	// });
+
+	interface Instruction {
+		startTime: number;
+		duration: number;
+		endValue: any;
+	}
+
+	class Rect {
+		public props = {
+			opacity: [] as Instruction[],
+			fill: [] as Instruction[]
+		};
+
+		constructor(public animation: Animation) {}
+
+		public play(property: keyof typeof this.props, to: any, duration: number): Instruction {
+			let instruction = this.run(property, to, duration);
+			this.animation.length += duration;
+			return instruction;
+		}
+
+		public run(property: keyof typeof this.props, to: any, duration: number): Instruction {
+			let instruction = {
+				startTime: this.animation.length,
+				duration,
+				endValue: to
+			};
+			this.props[property].push(instruction);
+			return instruction;
+		}
+
+		public set(property: keyof typeof this.props, to: any): Instruction {
+			return this.run(property, to, 0);
+		}
+	}
+
+	class Animation {
+		public length = 0;
+
+		public wait(time: number) {
+			this.length += time;
+		}
+	}
 
 	let animation = new Animation();
-	let rect = new AnimationObject({
-		width: animateNumber,
-		height: animateNumber,
-		fill: animateColor,
-		opacity: animateNumber,
-		stroke: animateColor,
-		strokeWidth: animateNumber,
-		dashOffset: animateNumber,
-		x: animateNumber,
-		y: animateNumber,
-		rotation: animateNumber
-	});
+	let opacitySlider = 0;
+	let rect = new Rect(animation);
+	rect.set('fill', 'white');
+	let opacityLevelInstruction = rect.play('opacity', 1, 1);
+	$: {
+		opacityLevelInstruction.endValue = opacitySlider;
+		rect.props.opacity = rect.props.opacity;
+	}
+	rect.play('fill', 'blue', 1);
 
-	animation
-		.run(rect.animate('width', 100, 0))
-		.run(rect.animate('height', 100, 0))
-		.run(rect.animate('stroke', 'white', 0))
-		.run(rect.animate('strokeWidth', 2, 0))
-		.run(rect.animate('fill', 'black', 0))
-		.run(rect.animate('dashOffset', 400, 0))
-		.wait(1)
-		.play(rect.animate('dashOffset', 0))
-		.play(rect.animate('x', 40))
-		.play(rect.animate('y', 40))
-		.play(rect.animate('fill', 'white'))
-		.play(rect.animate('rotation', 45))
-		.run(rect.animate('width', 50))
-		.run(rect.animate('x', 65))
-		.run(rect.animate('y', 65))
-		.play(rect.animate('height', 50))
-		.play(rect.animate('fill', 'blue'))
-		.play(rect.animate('rotation', 0))
-		.run(rect.animate('width', 100))
-		.run(rect.animate('x', 40))
-		.run(rect.animate('y', 40))
-		.play(rect.animate('height', 100))
-		.play(rect.animate('x', 80))
-		.play(rect.animate('fill', 'black'))
-		.play(rect.animate('dashOffset', 400));
+	const cubicInOut = (t: number) =>
+		t < 0.5 ? 4.0 * t * t * t : 0.5 * Math.pow(2.0 * t - 2.0, 3.0) + 1.0;
 
-	videoLength = animation.time;
+	const atTime = (property: Instruction[], time: number) => {
+		return property
+			.sort((a, b) => a.startTime - b.startTime)
+			.filter(({ startTime }) => startTime < time)
+			.reduce((value, instruction, i, a) => {
+				let t;
+				if (a[i + 1] !== undefined) {
+					t = a[i + 1].startTime;
+				} else {
+					t = time;
+				}
+				return interpolate(
+					value,
+					instruction.endValue
+				)(Math.max(0, Math.min(1, cubicInOut((t - instruction.startTime) / instruction.duration))));
+			}, 0);
+	};
 
-	// how I want it to look
-	// let animation = new Animation();
-	// let rect = animation.rect(x, y, w, h, color, strokewidth, etc...)
-	// animation
-	//  .play(rotate(rect, 45))
-	//	.run(rotate(rect, 45))
-	//  .wait(1)
-	//
+	videoLength = 5;
 </script>
 
 <svelte:head>
@@ -139,21 +135,12 @@
 			style="border: 1px solid black; background-color: black"
 		>
 			<rect
-				opacity={rect.props.opacity.func(1, videoTime)}
-				x={rect.props.x.func(0, videoTime)}
-				y={rect.props.y.func(0, videoTime)}
-				width={rect.props.width.func(0, videoTime)}
-				height={rect.props.height.func(0, videoTime)}
-				stroke={rect.props.stroke.func('black', videoTime)}
-				stroke-width={`${rect.props.strokeWidth.func(0, videoTime)}px`}
-				fill={rect.props.fill.func('white', videoTime)}
-				stroke-dasharray={(rect.props.width.func(0, videoTime) +
-					rect.props.height.func(0, videoTime)) *
-					2}
-				stroke-dashoffset={rect.props.dashOffset.func(0, videoTime)}
-				transform={`rotate(${rect.props.rotation.func(0, videoTime)}, ${
-					rect.props.x.func(0, videoTime) + rect.props.width.func(0, videoTime) / 2
-				}, ${rect.props.y.func(0, videoTime) + rect.props.height.func(0, videoTime) / 2})`}
+				opacity={atTime(rect.props.opacity, videoTime)}
+				x="50"
+				y="50"
+				width="50"
+				height="50"
+				fill={atTime(rect.props.fill, videoTime)}
 			/>
 		</svg>
 		<!-- <div style={`z-index: 2; opacity: ${textOpacity.func(0, videoTime) * 100}%; position: absolute; left: ${textX.func(0, videoTime)}px; top: ${textY.func(0, videoTime)}px; color: white`}>
@@ -169,5 +156,7 @@
 		on:mousedown={() => (playing = false)}
 		bind:value={videoTime}
 	/>
+
 	<button on:click={() => (playing = !playing)}>{playing ? 'Pause' : 'Play'}</button>
 </div>
+<input type="range" min="0" max="1" step="0.01" bind:value={opacitySlider} />
