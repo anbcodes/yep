@@ -1,38 +1,17 @@
-# create-svelte
+# Yep - A svg animated interactive video api
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte);
+Yep allows you to create interactive videos (like [this](https://liqvidjs.org/)) with the same style as [manim](https://manim.community), which is used by the youtuber 3blue1brown. It is based on SVG and we are currently using svelte.
 
-## Creating a project
+## API
+This API is subject to change but currently there is a `Animation` class and a `Rect` class.
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```bash
-# create a new project in the current directory
-npm init svelte@next
-
-# create a new project in my-app
-npm init svelte@next my-app
-```
-
-> Note: the `@next` is temporary
+{{>main}}
 
 ## Developing
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Clone the repo then run `npm install` to install the dependencies.
 
-```bash
-npm run dev
+To start the development server, run `npm run dev`
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+To build the app for production, run `npm run build`
 
-## Building
-
-Before creating a production version of your app, install an [adapter](https://kit.svelte.dev/docs#adapters) for your target environment. Then:
-
-```bash
-npm run build
-```
-
-> You can preview the built app with `npm run preview`, regardless of whether you installed an adapter. This should _not_ be used to serve your app in production.

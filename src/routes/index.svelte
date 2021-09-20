@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { interpolateNumber, interpolateLab, interpolate } from 'd3-interpolate';
-
 	import { onMount } from 'svelte';
 	import katex from 'katex';
+	import { Animation, atTime, Rect } from '$lib';
 
 	let videoWidth = 600;
 	let videoHeight = 0;
@@ -39,49 +38,6 @@
 	// 	throwOnError: false
 	// });
 
-	interface Instruction {
-		startTime: number;
-		duration: number;
-		endValue: any;
-	}
-
-	class Rect {
-		public props = {
-			opacity: [] as Instruction[],
-			fill: [] as Instruction[]
-		};
-
-		constructor(public animation: Animation) {}
-
-		public play(property: keyof typeof this.props, to: any, duration: number): Instruction {
-			let instruction = this.run(property, to, duration);
-			this.animation.length += duration;
-			return instruction;
-		}
-
-		public run(property: keyof typeof this.props, to: any, duration: number): Instruction {
-			let instruction = {
-				startTime: this.animation.length,
-				duration,
-				endValue: to
-			};
-			this.props[property].push(instruction);
-			return instruction;
-		}
-
-		public set(property: keyof typeof this.props, to: any): Instruction {
-			return this.run(property, to, 0);
-		}
-	}
-
-	class Animation {
-		public length = 0;
-
-		public wait(time: number) {
-			this.length += time;
-		}
-	}
-
 	let animation = new Animation();
 	let opacitySlider = 0;
 	let rect = new Rect(animation);
@@ -92,27 +48,6 @@
 		rect.props.opacity = rect.props.opacity;
 	}
 	rect.play('fill', 'blue', 1);
-
-	const cubicInOut = (t: number) =>
-		t < 0.5 ? 4.0 * t * t * t : 0.5 * Math.pow(2.0 * t - 2.0, 3.0) + 1.0;
-
-	const atTime = (property: Instruction[], time: number) => {
-		return property
-			.sort((a, b) => a.startTime - b.startTime)
-			.filter(({ startTime }) => startTime < time)
-			.reduce((value, instruction, i, a) => {
-				let t;
-				if (a[i + 1] !== undefined) {
-					t = a[i + 1].startTime;
-				} else {
-					t = time;
-				}
-				return interpolate(
-					value,
-					instruction.endValue
-				)(Math.max(0, Math.min(1, cubicInOut((t - instruction.startTime) / instruction.duration))));
-			}, 0);
-	};
 
 	videoLength = 5;
 </script>
