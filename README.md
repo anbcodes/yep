@@ -3,9 +3,7 @@
 Yep allows you to create interactive videos (like [this](https://liqvidjs.org/)) with the same style as [manim](https://manim.community), which is used by the youtuber 3blue1brown. It is based on SVG and we are currently using svelte.
 
 ## API
-This API is subject to change but currently there is a `Animation` class and a `Rect` class.
-
-{{>main}}
+The code is documented using the tsdoc format. I have yet to figure out how to extract that documentation.
 
 ## Developing
 

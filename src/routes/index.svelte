@@ -41,13 +41,17 @@
 	let animation = new Animation();
 	let opacitySlider = 0;
 	let rect = new Rect(animation);
-	rect.set('fill', 'white');
-	let opacityLevelInstruction = rect.play('opacity', 1, 1);
-	$: {
-		opacityLevelInstruction.endValue = opacitySlider;
-		rect.props.opacity = rect.props.opacity;
-	}
-	rect.play('fill', 'blue', 1);
+	rect.set('stroke', 'white');
+	rect.set('width', '50px');
+	rect.set('height', '50px');
+	rect.set('strokeWidth', '2px');
+	rect.set('dashPercent', 0);
+	let opacityLevelInstruction = rect.set('opacity', 1);
+	// $: {
+	// 	opacityLevelInstruction.endValue = opacitySlider;
+	// 	rect.props.opacity = rect.props.opacity;
+	// }
+	rect.play('dashPercent', 100, 1);
 
 	videoLength = 5;
 </script>
@@ -73,9 +77,13 @@
 				opacity={atTime(rect.props.opacity, videoTime)}
 				x="50"
 				y="50"
-				width="50"
-				height="50"
+				width={rect.compute('width', videoTime)}
+				height={rect.compute('height', videoTime)}
+				stroke={rect.compute('stroke', videoTime)}
+				stroke-width={rect.compute('strokeWidth', videoTime)}
 				fill={atTime(rect.props.fill, videoTime)}
+				stroke-dashoffset={rect.compute('dashOffset', videoTime)}
+				stroke-dasharray={rect.compute('dashArray', videoTime)}
 			/>
 		</svg>
 		<!-- <div style={`z-index: 2; opacity: ${textOpacity.func(0, videoTime) * 100}%; position: absolute; left: ${textX.func(0, videoTime)}px; top: ${textY.func(0, videoTime)}px; color: white`}>
