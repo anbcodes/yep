@@ -95,6 +95,18 @@ export class AnimationObject {
   }
 
   /**
+   * Adds multiple animations to be played (advancing the time)
+   * @param properties The properties to animate
+   * @param duration The duration of this animation
+   * @returns References to the created instructions
+   */
+  public playMany<T extends { [V in keyof this["props"]]?: any }>(properties: T, duration = 1): { [V in keyof T]: Instruction } {
+    let instructions = this.runMany(properties, duration);
+    this.animation.length += duration;
+    return instructions;
+  }
+
+  /**
    * Adds an animation to be run (does not advance the time)
    * @param property The property to animate
    * @param to The value to animate to
@@ -114,6 +126,20 @@ export class AnimationObject {
   }
 
   /**
+   * Adds multiple animations to be run (does not advance the time)
+   * @param properties The properties to animate
+   * @param duration The duration of this animation
+   * @returns References to the created instructions
+   */
+  public runMany<T extends { [V in keyof this["props"]]?: any }>(properties: T, duration = 1): { [V in keyof T]: Instruction } {
+    let instructions = {} as { [V in keyof T]: Instruction };
+    Object.entries(properties).map(([key, value]) => {
+      instructions[key] = this.run(key as keyof this["props"], value, duration)
+    })
+    return instructions;
+  }
+
+  /**
    * Sets the value of a property
    * @param property The property to set
    * @param value The value to set it to
@@ -122,6 +148,18 @@ export class AnimationObject {
   public set(property: keyof this["props"], value: any): Instruction {
     return this.run(property, value, 0);
   }
+
+  /**
+   * Sets the value of multiple properties
+   * @param property The property to set
+   * @param value The value to set it to
+   * @returns A reference to the created instruction
+   */
+  public setMany<T extends { [V in keyof this["props"]]?: any }>(properties: T): { [V in keyof T]: Instruction } {
+    return this.runMany(properties, 0);
+  }
+
+
 
   public compute(property: keyof this["props"], time: number, interpolateFunc = interpolate): any {
     //@ts-ignore

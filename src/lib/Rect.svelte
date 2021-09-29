@@ -21,8 +21,8 @@
 				} else if (typeof w === 'number' || typeof h === 'number') {
 					throw new Error('Mismatched width and height types');
 				}
-				let [_, wValue, wUnits] = w.match(/([0-9]+)([^]*)/);
-				let [t, hValue, hUnits] = h.match(/([0-9]+)([^]*)/);
+				let [_, wValue, wUnits] = w.match(/([0-9.e]+)([^]*)/);
+				let [t, hValue, hUnits] = h.match(/([0-9.e]+)([^]*)/);
 
 				if (wUnits.trim() !== hUnits.trim()) {
 					throw new Error(
