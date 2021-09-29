@@ -59,6 +59,7 @@ export interface Instruction {
   startTime: number;
   duration: number;
   endValue: any;
+  easingFunc: (v: number) => number;
 }
 
 
@@ -87,8 +88,8 @@ export class AnimationObject {
    * @param duration The duration of this animation
    * @returns A reference to the created instruction
    */
-  public play(property: keyof this["props"], to: any, duration = 1): Instruction {
-    let instruction = this.run(property, to, duration);
+  public play(property: keyof this["props"], to: any, duration = 1, easingFunc = cubicInOut): Instruction {
+    let instruction = this.run(property, to, duration, easingFunc);
     this.animation.length += duration;
     return instruction;
   }
@@ -100,11 +101,12 @@ export class AnimationObject {
    * @param duration The duration of this animation
    * @returns A reference to the created instruction
    */
-  public run(property: keyof this["props"], to: any, duration = 1): Instruction {
+  public run(property: keyof this["props"], to: any, duration = 1, easingFunc = cubicInOut): Instruction {
     let instruction = {
       startTime: this.animation.length,
       duration,
-      endValue: to
+      endValue: to,
+      easingFunc,
     };
     //@ts-ignore
     this.props[property].push(instruction);
@@ -121,7 +123,7 @@ export class AnimationObject {
     return this.run(property, value, 0);
   }
 
-  public compute(property: keyof this["props"], time: number): any {
+  public compute(property: keyof this["props"], time: number, interpolateFunc = interpolate): any {
     //@ts-ignore
     return this.props[property].sort((a, b) => a.startTime - b.startTime)
       .filter(({ startTime }) => startTime < time)
@@ -132,7 +134,7 @@ export class AnimationObject {
         } else {
           t = time;
         }
-        return interpolate(
+        return interpolateFunc(
           value,
           instruction.endValue
         )(Math.max(0, Math.min(1, cubicInOut((t - instruction.startTime) / (instruction.duration + 0.000001))))); // TODO: currently a hack for div/0 error

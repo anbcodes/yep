@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import katex from 'katex';
-	import { Animation, atTime, Rect } from '$lib';
+	import { Animation, atTime, Instruction } from '$lib';
+	import Rect, { RectAnimation } from '$lib/Rect.svelte';
+	import Katex, { KatexAnimation } from '$lib/Katex.svelte';
 
 	let videoWidth = 600;
 	let videoHeight = 0;
@@ -39,19 +41,38 @@
 	// });
 
 	let animation = new Animation();
-	let opacitySlider = 0;
-	let rect = new Rect(animation);
-	rect.set('stroke', 'white');
-	rect.set('width', '50px');
-	rect.set('height', '50px');
-	rect.set('strokeWidth', '2px');
-	rect.set('dashPercent', 0);
-	let opacityLevelInstruction = rect.set('opacity', 1);
-	// $: {
-	// 	opacityLevelInstruction.endValue = opacitySlider;
-	// 	rect.props.opacity = rect.props.opacity;
-	// }
-	rect.play('dashPercent', 100, 1);
+	let opacitySlider = 1;
+	let rect: RectAnimation;
+	let areaText: KatexAnimation;
+	let widthText: KatexAnimation;
+	let heightText: KatexAnimation;
+	let opacityLevelInstruction: Instruction;
+
+	onMount(() => {
+		rect.set('stroke', 'white');
+		rect.set('x', '50px');
+		rect.set('y', '50px');
+		rect.set('width', '50px');
+		rect.set('height', '50px');
+		rect.set('strokeWidth', '2px');
+		rect.set('dashPercent', 0);
+		areaText.set('text', 'a = wh');
+		areaText.set('opacity', 1);
+		areaText.set('fill', 'white');
+		areaText.set('x', 0);
+		areaText.set('y', 0);
+		areaText.set('width', 200);
+		areaText.set('height', 20);
+		opacityLevelInstruction = rect.set('opacity', 1);
+		rect.play('dashPercent', 100, 1);
+	});
+
+	$: {
+		if (opacityLevelInstruction) {
+			opacityLevelInstruction.endValue = opacitySlider;
+			videoTime = videoTime + 0.000000001;
+		}
+	}
 
 	videoLength = 5;
 </script>
@@ -73,22 +94,9 @@
 			bind:this={svg}
 			style="border: 1px solid black; background-color: black"
 		>
-			<rect
-				opacity={atTime(rect.props.opacity, videoTime)}
-				x="50"
-				y="50"
-				width={rect.compute('width', videoTime)}
-				height={rect.compute('height', videoTime)}
-				stroke={rect.compute('stroke', videoTime)}
-				stroke-width={rect.compute('strokeWidth', videoTime)}
-				fill={atTime(rect.props.fill, videoTime)}
-				stroke-dashoffset={rect.compute('dashOffset', videoTime)}
-				stroke-dasharray={rect.compute('dashArray', videoTime)}
-			/>
+			<Rect bind:animation bind:videoTime bind:anim={rect} />
 		</svg>
-		<!-- <div style={`z-index: 2; opacity: ${textOpacity.func(0, videoTime) * 100}%; position: absolute; left: ${textX.func(0, videoTime)}px; top: ${textY.func(0, videoTime)}px; color: white`}>
-			{@html katexString}
-		</div> -->
+		<Katex bind:anim={areaText} bind:videoTime bind:animation />
 	</div>
 
 	<input
